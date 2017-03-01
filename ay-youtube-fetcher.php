@@ -166,6 +166,16 @@ function ay_youtube_fetcher_shortcode( $atts ){
 
 	$youtube_videos = ay_youtube_fetcher_get_data( $atts );
 
-	return $youtube_videos;
+	ob_start();
+	?>
+	<pre>
+	 <?php print_r($youtube_videos); ?>
+	</pre>
+	<?php
+	$content = ob_get_clean();
+
+	return $content;
+	//return $youtube_videos['items'];
+	
 }
 
