@@ -17,8 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'admin_menu', 'ay_youtube_fetcher_menu');
 
 function ay_youtube_fetcher_menu() {
+
 	add_menu_page('Youtube Fetcher Options', 'Youtube Fetcher', 'manage_options', 'ay-youtube-fetcher', 'ay_youtube_fetcher_options');
-	//add_options_page( 'Youtube Fetcher Options', 'Youtube Fetcher', 'manage_options', 'ay-youtube-fetcher', 'ay_youtube_fetcher_options');
+
 	add_action( 'load-' . $hook_suffix , 'ay_youtube_fetcher_load' );
 
 	//call register settings function
@@ -26,7 +27,6 @@ function ay_youtube_fetcher_menu() {
 }
 
 function ay_youtube_fetcher_plugin_settings() {
-	//register our settings
 	register_setting( 'ay-youtube-fetcher-settings-group', 'google_api_key' );
 	register_setting( 'ay-youtube-fetcher-settings-group', 'youtube_channel_id' );
 	register_setting( 'ay-youtube-fetcher-settings-group', 'max_result' );
@@ -86,21 +86,38 @@ function ay_youtube_fetcher_admin_notices() {
 	echo "<div id='notice' class='updated fade'><p>Ay Youtube Fetcher is not configured yet. Please do it now.</p></div>\n";
 }
 
-function ay_youtube_fetcher_get_data() {
+function ay_youtube_fetcher_get_data( $atts = null ) {
+
+	// get option data
 	$google_api_key = esc_attr( get_option('google_api_key') );
 	$youtube_channel_id = esc_attr( get_option('youtube_channel_id') );
 	$max_result = esc_attr( get_option('max_result') );
 	$order = 'date';
 
+	// override data if atts not null
+	if($atts != null) {
+		$google_api_key = $atts['google_api_key'];
+		$youtube_channel_id = $atts['youtube_channel_id'];
+		$max_result = $atts['max_result'];
+		$order = $atts['order'];
+	}
+
 	// apply filter
-	$google_api_key = apply_filter('ayyf_google_api_key_value', $google_api_key);
-	$youtube_channel_id = apply_filter('ayyf_youtube_channel_id_value', $youtube_channel_id);
-	$max_result = apply_filter('ayyf_max_result_value', $max_result);
+	$google_api_key = apply_filters('ayyf_google_api_key_value', $google_api_key);
+	$youtube_channel_id = apply_filters('ayyf_youtube_channel_id_value', $youtube_channel_id);
+	$max_result = apply_filters('ayyf_max_result_value', $max_result);
 	$order = apply_filters('ayyf_order_value', $order);
 
 	//handling if null
 	if($google_api_key == null || $youtube_channel_id == null) {
-		wp_die();
+		
+		if($google_api_key == null) {
+			wp_die("Google API Key cannot be null / empty");	
+		}
+		
+		if($youtube_channel_id == null) {
+			wp_die("Youtube Channel ID API Key cannot be null / empty");	
+		}
 	}
 
 	if($max_result == null) {
@@ -108,7 +125,7 @@ function ay_youtube_fetcher_get_data() {
 	}
 
 	if($order == null) {
-		$order = 'ASC';
+		$order = 'date';
 	}
 
 	$url = "https://www.googleapis.com/youtube/v3/search?key=".$google_api_key."&channelId=".$youtube_channel_id."&part=snippet,id&order=".$order."&maxResults=".$max_result;
@@ -116,6 +133,7 @@ function ay_youtube_fetcher_get_data() {
 	$result = get($url);
 
 	return $result;
+
 }
 
 function get($url)
@@ -132,3 +150,22 @@ function get($url)
 
     return $output;
 }
+
+
+//shortcode function
+add_shortcode( 'ayyf_youtube_videos', 'ay_youtube_fetcher_shortcode' );
+
+function ay_youtube_fetcher_shortcode( $atts ){
+	
+	$atts = shortcode_atts( array(
+        'google_api_key' => esc_attr( get_option('google_api_key') ),
+        'youtube_channel_id' => esc_attr( get_option('youtube_channel_id') ),
+        'max_result' => esc_attr( get_option('max_result') ),
+        'order' => esc_attr( get_option('order') ),
+    ), $atts );
+
+	$youtube_videos = ay_youtube_fetcher_get_data( $atts );
+
+	return $youtube_videos;
+}
+
