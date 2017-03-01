@@ -87,5 +87,48 @@ function ay_youtube_fetcher_admin_notices() {
 }
 
 function ay_youtube_fetcher_get_data() {
-	$url = 'https://www.googleapis.com/youtube/v3/search?key={your_key_here}&channelId={channel_id_here}&part=snippet,id&order=date&maxResults=20';
+	$google_api_key = esc_attr( get_option('google_api_key') );
+	$youtube_channel_id = esc_attr( get_option('youtube_channel_id') );
+	$max_result = esc_attr( get_option('max_result') );
+	$order = 'date';
+
+	// apply filter
+	$google_api_key = apply_filter('ayyf_google_api_key_value', $google_api_key);
+	$youtube_channel_id = apply_filter('ayyf_youtube_channel_id_value', $youtube_channel_id);
+	$max_result = apply_filter('ayyf_max_result_value', $max_result);
+	$order = apply_filters('ayyf_order_value', $order);
+
+	//handling if null
+	if($google_api_key == null || $youtube_channel_id == null) {
+		wp_die();
+	}
+
+	if($max_result == null) {
+		$max_result = 20;
+	}
+
+	if($order == null) {
+		$order = 'ASC';
+	}
+
+	$url = "https://www.googleapis.com/youtube/v3/search?key=".$google_api_key."&channelId=".$youtube_channel_id."&part=snippet,id&order=".$order."&maxResults=".$max_result;
+
+	$result = get($url);
+
+	return $result;
+}
+
+function get($url)
+{
+    $ch = curl_init();  
+ 
+    curl_setopt($ch,CURLOPT_URL,$url);
+    curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
+	//curl_setopt($ch,CURLOPT_HEADER, false); 
+ 
+    $output = curl_exec($ch);
+ 
+    curl_close($ch);
+
+    return $output;
 }
