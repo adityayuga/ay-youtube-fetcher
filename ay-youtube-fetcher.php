@@ -138,17 +138,13 @@ function ay_youtube_fetcher_get_data( $atts = null ) {
 
 function get($url)
 {
-    $ch = curl_init();  
- 
-    curl_setopt($ch,CURLOPT_URL,$url);
-    curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-	//curl_setopt($ch,CURLOPT_HEADER, false); 
- 
-    $output = curl_exec($ch);
- 
-    curl_close($ch);
+    $content = file_get_contents($url);
 
-    return $output;
+    if ( !empty($content) ) {
+    	$content = json_decode($content, true);
+    }
+
+    return $content;
 }
 
 
@@ -167,15 +163,26 @@ function ay_youtube_fetcher_shortcode( $atts ){
 	$youtube_videos = ay_youtube_fetcher_get_data( $atts );
 
 	ob_start();
+	
+	foreach( (array) $youtube_videos['items'] as $video ) {
+    	if ( !preg_match('/youtube\#video/i', $video['id']['kind']) ) continue;
 	?>
-	<pre>
-	 <?php print_r($youtube_videos); ?>
-	</pre>
+
+	<div class="video-container">
+      <div class="video-wrapper">
+        <?php
+          $embed_code = '<iframe src="//www.youtube.com/embed/'.$video['id']['videoId'].'?rel=0&showinfo=0&autoplay=0&loop=1" width="'.$width.'" height="'.$height.'" frameborder="0" allowfullscreen="allowfullscreen"></iframe>';
+          echo $embed_code;
+        ?>
+      </div>
+      <h3 class="page-title"><?php echo $video['snippet']['title']; ?></h3>
+    </div>
+
 	<?php
+	} // end of foreach
+
 	$content = ob_get_clean();
 
 	return $content;
-	//return $youtube_videos['items'];
-	
 }
 
